@@ -15,5 +15,6 @@ use App\Imports\UsersImport;
 */
 
 Route::get('/', function () {
+    
     \Excel::import(new UsersImport, 'rc9638.xls', 'local');
 });

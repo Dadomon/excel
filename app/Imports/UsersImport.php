@@ -85,7 +85,9 @@ class UsersImport implements ToModel
                                                     # code...
             break;
             case 11:
-                $this->direccion .= $row[3];
+                if(substr($row[3], 0 ,1) != " "){
+                    $this->direccion .= $row[3];
+                }
                 
             break;
             case 12:
@@ -96,6 +98,7 @@ class UsersImport implements ToModel
                 # code...
             break;
             case 13:
+                $this->nombre_apoderado .= " ".$row[1];
                 $this->fecha_apoderado .= $row[5];
                 # code...
             break;
@@ -105,6 +108,7 @@ class UsersImport implements ToModel
             break;
             case 15:
                 $this->escritura_constitutiva .= $row[1];
+                $this->notaria_apoderado .= $row[5];
                 # code...
             break;
             case 16:
@@ -118,6 +122,8 @@ class UsersImport implements ToModel
             break;
             case 18:
                 $this->especialidades .= $row[8];
+                $this->notaria_constitutiva .= $row[1];
+
                 # code...
             break;
             case 19:
@@ -129,23 +135,33 @@ class UsersImport implements ToModel
                 # code...
             break;
             case 21:
-                $this->especialidades .= $row[8];
+                $this->especialidades .= " ".$row[8];
                 $this->shcp_registro .= $row[1];
 
                 # code...
             break;
             case 22:
                 $this->imss_registro .= $row[1];
+
+                if(!$row[8] == "Otras (Especificar)"){
+                    $this->especialidades .= $row[8];
+
+                }
+
                 # code...
             break;
             case 23:
                 $this->infonavit_registro .= $row[1];
                 $this->capital .= $row[5];
+                $this->otros_registro .= $row[8];
 
-                # code...
             break;
             case 24:
-                                                                                                            # code...
+                if($row[8] == "Otras (Especificar)"){
+                    $this->otros_registro = $row[8];
+
+                }
+                $this->otros_registro .= " ".$row[8];
             break;
             case 25:
                                                                                                                 # code...
@@ -172,28 +188,28 @@ class UsersImport implements ToModel
             case 31:
                 $this->nombre_autoriza = $row[8];
                 return  new Newtable([
-                    'folio' => $this->folio,
+                    'folio' => (isset($this->folio)) ? $this->folio : "ILEGIBLE",
                     'nombre'=> $this->nombre,
                     'direccion'=> $this->direccion,
                     'numero_registro'=> $this->numero_registro,
-                    'nombre_apoderado'=> $this->nombre_apoderado,
-                    'escritura_apoderado'=> $this->escritura_apoderado,
-                    'fecha_apoderado'=> date("Y-m-d",$this->fecha_apoderado),
-                    'notaria_apoderado' => $this->notaria_apoderado,
-                    'escritura_constitutiva'=> $this->escritura_constitutiva,
-                    'fecha_constitutiva'=> date("Y-m-d",$this->fecha_constitutiva),
-                    'notaria_constitutiva'=> $this->notaria_constitutiva,
-                    'shcp_registro'=> $this->shcp_registro,
-                    'imss_registro'=> $this->imss_registro,
-                    'infonavit_registro'=> $this->infonavit_registro,
-                    'otros_registro'=> $this->otros_registro,
-                    'capital'=> $this->capital,
-                    'fecha_constancia'=> date("Y-m-d", $this->fecha_constancia),
+                    'nombre_apoderado'=>  ($this->nombre_apoderado) ? : "ILEGIBLE",
+                    'escritura_apoderado'=> ($this->escritura_apoderado) ? : "ILEGIBLE",
+                    'fecha_apoderado'=> ($this->fecha_apoderado )? \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($this->fecha_apoderado) : "ILEGIBLE",
+                    'notaria_apoderado' => ($this->notaria_apoderado) ? : "ILEGIBLE",
+                    'escritura_constitutiva'=> ($this->escritura_constitutiva) ? : "ILEGIBLE",
+                    'fecha_constitutiva'=> ($this->fecha_constitutiva) ? \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($this->fecha_constitutiva) : "ILEGIBLE",
+                    'notaria_constitutiva'=> ($this->notaria_constitutiva) ? : "ILEGIBLE",
+                    'shcp_registro'=> ($this->shcp_registro) ? : "ILEGIBLE",
+                    'imss_registro'=> ($this->imss_registro) ? : "ILEGIBLE",
+                    'infonavit_registro'=> ($this->infonavit_registro) ? : "ILEGIBLE",
+                    'otras_especialidades'=> (isset($this->otros_registro) || empty($this->otros_registro)) ? $this->otros_registro : "ILEGIBLE" ,
+                    'capital'=> ($this->capital) ? : "ILEGIBLE",
+                    'fecha_constancia'=> ($this->fecha_constancia) ? \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($this->fecha_constancia) : "ILEGIBLE",
                     'invitaciones_restringidas'=> $this->invitaciones_restringidas,
-                    'puesto_autoriza'=> $this->puesto_autoriza,
-                    'nombre_autoriza'=> $this->nombre_autoriza,
-                    'telefono'=> $this->telefono,
-                    'especialidades'  => $this->especialidades,
+                    'puesto_autoriza'=> ($this->puesto_autoriza) ? : "ILEGIBLE",
+                    'nombre_autoriza'=> ($this->nombre_autoriza) ? : "ILEGIBLE",
+                    'telefono'=> ($this->telefono) ? : "ILEGIBLE",
+                    'especialidades'  => ($this->especialidades) ? : "ILEGIBLE",
                     ]);                          # code...
             break;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
                                                                                                                                                                                                                                                                                                                                                                                                                                                                         

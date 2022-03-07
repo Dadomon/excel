@@ -27,7 +27,7 @@ class Newtable extends Model
         'shcp_registro',
         'imss_registro',
         'infonavit_registro',
-        'otros_registro',
+        'otras_especialidades',
         'capital',
         'fecha_constancia',
         'invitaciones_restringidas',
