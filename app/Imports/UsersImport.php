@@ -41,8 +41,6 @@ class UsersImport implements ToModel
     public function model(array $row)
     {   
         $this->contador ++;
-        dump($this->contador);
-        dump($row);
         switch ($this->contador) {
             case 1:
                 # code...

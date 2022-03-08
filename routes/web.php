@@ -15,6 +15,9 @@ use App\Imports\UsersImport;
 */
 
 Route::get('/', function () {
-    
-    \Excel::import(new UsersImport, 'rc9638.xls', 'local');
+    $files = \Storage::allFiles();
+    foreach ($files as $key => $value) {
+        \Excel::import(new UsersImport, $value, 'local');
+
+    }
 });
