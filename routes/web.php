@@ -15,9 +15,18 @@ use App\Imports\UsersImport;
 */
 
 Route::get('/', function () {
-    $files = \Storage::allFiles();
+    set_time_limit(7200);
+    $files = \Storage::allFiles("RegistrosAntes2020");
     foreach ($files as $key => $value) {
-        \Excel::import(new UsersImport, $value, 'local');
+        try {
+            \Excel::import(new UsersImport, $value, 'local');
+            \Storage::move($value, "finalizaAntes2020/$value");
 
+        } catch (\Throwable $th) {
+            \Log::error($value." ".$th->getMessage()." ".$th->getFile().' linea '.$th->getLine());
+            continue;
+
+        }       
     }
+    //\Excel::import(new UsersImport, "Registros2021/rc152.xls", 'local');
 });

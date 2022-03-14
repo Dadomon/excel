@@ -34,7 +34,13 @@ class Newtable extends Model
         'puesto_autoriza',
         'nombre_autoriza',
         'telefono',
-        'especialidades'
+        'especialidades',
+        'puesto_reviso',
+        'nombre_reviso',
+        'email_registro',
+        'fecha_inscripcion_registro',
+        'fecha_modificacion_registro',
+        'modificaciones_constitutiva',
     ];
     
 }
