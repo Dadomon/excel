@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Imports\UsersImport;
+use App\Http\Controllers\LectorXMLController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,7 +16,7 @@ use App\Imports\UsersImport;
 */
 
 Route::get('/', function () {
-    set_time_limit(7200);
+   /*  set_time_limit(7200);
     $files = \Storage::allFiles("RegistrosAntes2020");
     foreach ($files as $key => $value) {
         try {
@@ -27,6 +28,21 @@ Route::get('/', function () {
             continue;
 
         }       
-    }
+    } */
     //\Excel::import(new UsersImport, "Registros2021/rc152.xls", 'local');
+});
+ 
+Route::get('/readxml', function(){
+    $files = \Storage::allFiles();
+    //dd($files);
+    foreach ($files as $key => $value) {
+        try {
+          
+            $xml = new LectorXMLController;
+            $xml = $xml->LectorXML(\File::get( storage_path("app/$value") ));
+            dump($xml);
+        } catch (\Throwable $th) {
+            dd($th);
+        }       
+    }
 });
