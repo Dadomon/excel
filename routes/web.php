@@ -33,14 +33,22 @@ Route::get('/', function () {
 });
  
 Route::get('/readxml', function(){
-    $files = \Storage::allFiles();
+    set_time_limit(7200);
+    $files = \Storage::allFiles("FEBRERO2020");
     //dd($files);
     foreach ($files as $key => $value) {
         try {
-          
-            $xml = new LectorXMLController;
-            $xml = $xml->LectorXML(\File::get( storage_path("app/$value") ));
-            dump($xml);
+            $foo = \File::extension(storage_path("app/$value"));
+            if ($foo == "xml") {
+                $xml = new LectorXMLController;
+                $xml = $xml->LectorXML(\File::get( storage_path("app/$value") ));
+                //\Storage::move($value, "finalizado/$value");
+
+                //DD($xml);
+            }else {
+                continue;
+            }
+           
         } catch (\Throwable $th) {
             dd($th);
         }       

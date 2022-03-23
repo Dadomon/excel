@@ -3,11 +3,17 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Xml;
 
 class LectorXMLController extends Controller
 {
     var $pila = array(); // variable global, de tipo LIFO
 	var $datosLimpios = array(); //variable global que donde se extraen solo datos especificados en la funcion limpia datos, LIFO
+	var $percepciones = "";
+	var $deducciones = "";
+	var $otros = "";
+
+
 
 	#Lee el xml
 	public function LectorXML($xml){
@@ -16,48 +22,163 @@ class LectorXMLController extends Controller
 
             $xml = $this->removeColonsFromRSS($xml); //se remueven caracteres especiales de los xml
             $xml = simplexml_load_string($xml); //se convierte el xml a una cadena
-            dump($xml);
-            /* try {
-                //de la etiqueta complemento, extraigo su contenido con get data, lo paso a notacion objeto tipo JS
-                $interaComplemento = json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento'];
-                //llamo a la funcion recursiva y le envío como parametro en json el cfdi complemento
-                $this->recursiveArray($interaComplemento);
+			//dump($xml);
+			$percepciones = isset(json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['nomina12_Percepcion']) ? json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['nomina12_Percepcion']: false;
+			$dedupciones = isset(json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento']['nomina12_Nomina']['nomina12_Deducciones']['nomina12_Deduccion']) ? json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento']['nomina12_Nomina']['nomina12_Deducciones']['nomina12_Deduccion']: false;
+			$otros = isset( json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento']['nomina12_Nomina']['nomina12_OtrosPagos'] ) ? json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Complemento']['nomina12_Nomina']['nomina12_OtrosPagos']: false;
 
-            } catch (\Throwable $th) {
-                //throw $th;
-            } */
-            /* try {
-                $interaAddenda = json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Addenda'];
-                $this->recursiveArray($interaAddenda);
+			//dd($interaConcepto['nomina12_Nomina']['nomina12_Percepciones']);
+			if ($percepciones) {
 
-            } catch (\Throwable $th) {
-				\Log::error($th->getMessage().' en el archivo '.$th->getFile().' linea '.$th->getLine());
+				$this->recursiveArray($percepciones);
 
-                //throw $th;
-            } */
-            try {
-                $interaConcepto = json_decode(json_encode(response()->json($xml)->getData()), true)['@attributes'];
-                dd($interaConcepto);
-//                $interaConcepto = json_decode(json_encode(response()->json($xml)->getData()), true)['cfdi_Conceptos'];
+				foreach ($this->pila as $key => $value) {
+					//$value = "TotalOtrasDeducciones: 3504.56";
+					$posClaveVehicular = strpos(strtoupper($value),":");
 
-                $this->recursiveArray($interaConcepto);
+					$llave = substr($value,0, $posClaveVehicular);
+					$valor = substr($value,$posClaveVehicular+1 );
 
-            } catch (\Throwable $th) {
-				\Log::error($th->getMessage().' en el archivo '.$th->getFile().' linea '.$th->getLine());
+					$this->percepciones .= "$llave ||$valor\n";
 
-                //throw $th;
-            }
-			//dd($this->pila);
-            //$this->limpiaDatos($this->pila);
-			//dd($this->datosLimpios);
+				}
+			}
 			
-			$data = array(
-				//'datosLimpios' => $this->datosLimpios,
-				'pila' =>$this->pila);
-            return $data;
+			//dump($dedupciones);
+
+			if ($dedupciones) {
+				//dump('dedcio');
+				$this->pila = array();
+				$this->recursiveArray($dedupciones);
+				//DUMP($this->pila);
+
+				foreach ($this->pila as $key => $value) {
+					//$value = "TotalOtrasDeducciones: 3504.56";
+					$posClaveVehicular = strpos(strtoupper($value),":");
+
+					$llave = substr($value,0, $posClaveVehicular);
+					$valor = substr($value,$posClaveVehicular+1 );
+
+					$this->deducciones .= "$llave ||$valor\n";
+						#lo guardo en pila
+					//$this->datosLimpios = array_merge($this->datosLimpios);
+
+				}
+			}
+			
+			//dump($otros);
+			if ($otros) {
+				//dump('otrs');
+
+				$this->pila = array();
+				$this->recursiveArray($otros);
+				//DUMP($this->pila);
+				foreach ($this->pila as $key => $value) {
+					//$value = "TotalOtrasDeducciones: 3504.56";
+					$posClaveVehicular = strpos(strtoupper($value),":");
+	
+					$llave = substr($value,0, $posClaveVehicular);
+					$valor = substr($value,$posClaveVehicular+1 );
+	
+					$this->otros .= "$llave ||$valor\n";
+						 #lo guardo en pila
+					//$this->datosLimpios = array_merge($this->datosLimpios);
+	
+				}
+			}
+			//dd('jeje');
+
+			try {
+                $interaConcepto = json_decode(json_encode(response()->json($xml)->getData()), true);
+
+				$flight = new Xml;
+				$flight->uuid = $interaConcepto['cfdi_Complemento']['tfd_TimbreFiscalDigital']['@attributes']['UUID'];
+				$flight->sellosat  = $interaConcepto['cfdi_Complemento']['tfd_TimbreFiscalDigital']['@attributes']['SelloSAT'];
+				$flight->fechatimbrado  = $interaConcepto['cfdi_Complemento']['tfd_TimbreFiscalDigital']['@attributes']['FechaTimbrado'];
+				$flight->sellocfd  = $interaConcepto['cfdi_Complemento']['tfd_TimbreFiscalDigital']['@attributes']['SelloCFD'];
+				$flight->nocertificadosat  = $interaConcepto['cfdi_Complemento']['tfd_TimbreFiscalDigital']['@attributes']['NoCertificadoSAT'];
+				$flight->rfcprovcertif= $interaConcepto['cfdi_Complemento']['tfd_TimbreFiscalDigital']['@attributes']['RfcProvCertif'];
+				$flight->folio = $interaConcepto['@attributes']['Folio'];
+				$flight->fecha = $interaConcepto['@attributes']['Fecha'];
+				$flight->sello = $interaConcepto['@attributes']['Sello'];
+				$flight->formapago = $interaConcepto['@attributes']['FormaPago'];
+				$flight->nocertificado = $interaConcepto['@attributes']['NoCertificado'];
+				$flight->certificado = $interaConcepto['@attributes']['Certificado'];
+				$flight->subtotal = $interaConcepto['@attributes']['SubTotal'];
+				$flight->descuento = isset ($interaConcepto['@attributes']['Descuento']) ? $interaConcepto['@attributes']['Descuento']: null;
+				$flight->moneda = $interaConcepto['@attributes']['Moneda'];
+				$flight->total = $interaConcepto['@attributes']['Total'];
+				$flight->tipodecomprobante = $interaConcepto['@attributes']['TipoDeComprobante'];
+				$flight->metodopago = $interaConcepto['@attributes']['MetodoPago'];
+				$flight->lugarexpedicion = $interaConcepto['@attributes']['LugarExpedicion'];
+
+				$flight->nomina_emisor_registropatronal = isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Emisor']['@attributes']['RegistroPatronal']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Emisor']['@attributes']['RegistroPatronal']: null;
+				$flight->nomina_emisor_origenrecurso = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Emisor']['nomina12_EntidadSNCF']['@attributes']['OrigenRecurso'];
+				$flight->nomina_fechapago = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['FechaPago'];
+				$flight->nomina_fechainicialpago = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['FechaInicialPago'];
+				$flight->nomina_fechafinalpago = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['FechaFinalPago'];
+				$flight->nomina_numdiaspagados = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['NumDiasPagados'];
+				$flight->nomina_totalpercepciones = isset( $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['TotalPercepciones']) ?$interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['TotalPercepciones'] : null;
+				$flight->nomina_totaldeducciones = isset ($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['TotalDeducciones']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['TotalDeducciones']: null;
+				$flight->nomina_totalotrospagos= isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['TotalOtrosPagos']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['@attributes']['TotalOtrosPagos']: null;
+
+				$flight->nomina_receptor_curp = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['Curp'];
+				$flight->nomina_receptor_numseguridadsocial= isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['NumSeguridadSocial']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['NumSeguridadSocial']: null;
+				$flight->nomina_receptor_fechainiciorellaboral= isset( $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['FechaInicioRelLaboral'] ) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['FechaInicioRelLaboral']: null;
+				$flight->nomina_receptor_antiguedad= isset( $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['Antigüedad']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['Antigüedad']: null;
+				$flight->nomina_receptor_tipocontrato= $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['TipoContrato'];
+				$flight->nomina_receptor_tiporegimen= $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['TipoRegimen'];
+				$flight->nomina_receptor_numempleado= $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['NumEmpleado'];
+				$flight->nomina_receptor_departamento= $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['Departamento'];
+				$flight->nomina_receptor_puesto= isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['Puesto']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['Puesto']: null;
+				$flight->nomina_receptor_riesgopuesto= isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['RiesgoPuesto']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['RiesgoPuesto']:null;
+				$flight->nomina_receptor_periodicidadpago= $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['PeriodicidadPago'];
+				$flight->nomina_receptor_salariodiariointegrado= isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['SalarioDiarioIntegrado']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['SalarioDiarioIntegrado']: null ;
+				$flight->nomina_receptor_claveentfed = $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Receptor']['@attributes']['ClaveEntFed'];
+				
+				$flight->conceptos_claveprodserv = $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['ClaveProdServ'];
+				$flight->conceptos_cantidad = $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['Cantidad'];
+				$flight->conceptos_claveunidad = $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['ClaveUnidad'];
+				$flight->conceptos_descripcion = $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['Descripcion'];
+				$flight->conceptos_valorunitario = $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['ValorUnitario'];
+				$flight->conceptos_importe = $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['Importe'];
+				$flight->conceptos_descuento = isset( $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['Descuento']) ? $interaConcepto['cfdi_Conceptos']['cfdi_Concepto']['@attributes']['Descuento']: null;
+
+				$flight->emisor_rfc = $interaConcepto['cfdi_Emisor']['@attributes']['Rfc'];
+				$flight->emisor_nombre = $interaConcepto['cfdi_Emisor']['@attributes']['Nombre'];
+				$flight->emisor_regimenfiscal = $interaConcepto['cfdi_Emisor']['@attributes']['RegimenFiscal'];
+
+				$flight->receptor_rfc = $interaConcepto['cfdi_Receptor']['@attributes']['Rfc'];
+				$flight->receptor_nombre = $interaConcepto['cfdi_Receptor']['@attributes']['Nombre'];
+				$flight->receptor_usocfdi = $interaConcepto['cfdi_Receptor']['@attributes']['UsoCFDI'];
+
+				$flight->nomina_percepciones_totalsueldos = isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['@attributes']['TotalSueldos']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['@attributes']['TotalSueldos']:null;
+				$flight->nomina_percepciones_totalgravado = isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['@attributes']['TotalGravado']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['@attributes']['TotalGravado']:null ;
+				$flight->nomina_percepciones_totalexento = isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['@attributes']['TotalExento']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Percepciones']['@attributes']['TotalExento']: null;
+				$flight->nomina_deducciones_totalotrasdeducciones =  isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Deducciones']['@attributes']['TotalOtrasDeducciones']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Deducciones']['@attributes']['TotalOtrasDeducciones']: null;
+				$flight->nomina_deducciones_totalimpuestosretenidos = isset($interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Deducciones']['@attributes']['TotalImpuestosRetenidos']) ? $interaConcepto['cfdi_Complemento']['nomina12_Nomina']['nomina12_Deducciones']['@attributes']['TotalImpuestosRetenidos']: null;
+
+				$flight->nomina_percepciones_detalle = $this->percepciones;
+				$flight->nomina_deducciones_detalle = $this->deducciones;
+				$flight->nomina_otrasdeducciones_detalle = $this->otros;
+	
+				$flight->save();
+				//dd($interaConcepto);
+				//$interaConcepto[]
+
+            } catch (\Throwable $th) {
+				\Log::error($th->getMessage().' en el archivo '.$th->getFile().' linea '.$th->getLine());
+				dump($xml);
+                dump( $th);
+            }
+
+		
 
         } catch (\Throwable $th) {
 			\Log::error($th->getMessage().' en el archivo '.$th->getFile().' linea '.$th->getLine());
+			dump($xml);
+			dump( $th);
+
             return false;
         }
 
